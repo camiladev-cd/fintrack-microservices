@@ -16,20 +16,19 @@ import java.util.Map;
 @Service
 public class JwtService {
 
-    @Value("${app.jwt.secret}")
+    @Value("${application.security.jwt.secret-key}")
     private String secret;
 
-    @Value("${app.jwt.expiration}")
+    @Value("${application.security.jwt.access-token-expiration}")
     private long expiration;
 
-    @Value("${app.jwt.refresh-expiration}")
+    @Value("${application.security.jwt.refresh-token-expiration}")
     private long refreshExpiration;
 
     public String generateAccessToken(UserDetails userDetails, Long userId) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("userId", userId.toString());
+        claims.put("userId", userId);
         claims.put("role", userDetails.getAuthorities().iterator().next().getAuthority());
-
         return buildToken(claims, userDetails.getUsername(), expiration);
     }
 
@@ -39,6 +38,14 @@ public class JwtService {
 
     public String extractEmail(String token) {
         return extractAllClaims(token).getSubject();
+    }
+
+    public Long extractUserId(String token) {
+        return extractAllClaims(token).get("userId", Long.class);
+    }
+
+    public String extractRole(String token) {
+        return extractAllClaims(token).get("role", String.class);
     }
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
@@ -69,8 +76,7 @@ public class JwtService {
                 .verifyWith(getSigningKey())
                 .build()
                 .parseSignedClaims(token)
-                .getPayload();
-    }
+                .getPayload();}
 
     private SecretKey getSigningKey() {
         byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);

@@ -7,11 +7,12 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 @Tag(name = "Authentication", description = "Register, login, refresh and logout")
 public class AuthController {
@@ -22,7 +23,7 @@ public class AuthController {
     @Operation(summary = "Register a new user")
     public ResponseEntity<AuthDTO.AuthResponse> register(
             @Valid @RequestBody AuthDTO.RegisterRequest request) {
-        return ResponseEntity.status(201).body(authService.register(request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request));
     }
 
     @PostMapping("/login")
@@ -40,7 +41,7 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    @Operation(summary = "Logout and invalidate token")
+    @Operation(summary = "Logout (client must discard tokens)")
     public ResponseEntity<AuthDTO.MessageResponse> logout(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader) {
         String token = authHeader.substring(7);

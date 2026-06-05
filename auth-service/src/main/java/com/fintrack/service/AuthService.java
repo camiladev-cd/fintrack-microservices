@@ -21,10 +21,10 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class AuthService {
 
-    private final UserRepository        userRepository;
-    private final PasswordEncoder       passwordEncoder;
-    private final JwtService            jwtService;
-    private final AuthenticationManager authenticationManager;
+    private final UserRepository             userRepository;
+    private final PasswordEncoder            passwordEncoder;
+    private final JwtService                 jwtService;
+    private final AuthenticationManager      authenticationManager;
     private final RedisTemplate<String, String> redisTemplate;
 
     private static final String BLACKLIST_PREFIX = "blacklist:";
@@ -32,10 +32,12 @@ public class AuthService {
     @Transactional
     public AuthDTO.AuthResponse register(AuthDTO.RegisterRequest request) {
         if (userRepository.existsByEmail(request.email())) {
-            throw new AuthException("Email already registered: " + request.email());
+            throw new AuthException.EmailAlreadyExistsException(request.email());
         }
 
         User user = User.builder()
+                .firstName(request.firstName())
+                .lastName(request.lastName())
                 .email(request.email())
                 .password(passwordEncoder.encode(request.password()))
                 .build();
@@ -43,10 +45,7 @@ public class AuthService {
         userRepository.save(user);
         log.info("New user registered: {}", user.getEmail());
 
-        String accessToken  = jwtService.generateAccessToken(user, user.getId());
-        String refreshToken = jwtService.generateRefreshToken(user);
-
-        return AuthDTO.AuthResponse.of(accessToken, refreshToken, jwtService.getExpiration());
+        return buildAuthResponse(user);
     }
 
     public AuthDTO.AuthResponse login(AuthDTO.LoginRequest request) {
@@ -55,33 +54,26 @@ public class AuthService {
         );
 
         User user = userRepository.findByEmail(request.email())
-                .orElseThrow(() -> new AuthException("User not found"));
-
-        String accessToken  = jwtService.generateAccessToken(user, user.getId());
-        String refreshToken = jwtService.generateRefreshToken(user);
+                .orElseThrow(() -> new AuthException.InvalidCredentialsException());
 
         log.info("User logged in: {}", user.getEmail());
-        return AuthDTO.AuthResponse.of(accessToken, refreshToken, jwtService.getExpiration());
+        return buildAuthResponse(user);
     }
 
     public AuthDTO.AuthResponse refresh(AuthDTO.RefreshRequest request) {
         String email = jwtService.extractEmail(request.refreshToken());
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new AuthException("User not found"));
+                .orElseThrow(() -> new AuthException.InvalidCredentialsException());
 
         if (!jwtService.isTokenValid(request.refreshToken(), user)) {
-            throw new AuthException("Invalid or expired refresh token");
+            throw new AuthException.InvalidTokenException();
         }
 
-        String accessToken  = jwtService.generateAccessToken(user, user.getId());
-        String refreshToken = jwtService.generateRefreshToken(user);
-
-        return AuthDTO.AuthResponse.of(accessToken, refreshToken, jwtService.getExpiration());
+        return buildAuthResponse(user);
     }
 
     public AuthDTO.MessageResponse logout(String token) {
-        // Add token to Redis blacklist with 24h TTL
         redisTemplate.opsForValue().set(
                 BLACKLIST_PREFIX + token,
                 "revoked",
@@ -93,5 +85,22 @@ public class AuthService {
 
     public boolean isTokenBlacklisted(String token) {
         return Boolean.TRUE.equals(redisTemplate.hasKey(BLACKLIST_PREFIX + token));
+    }
+
+    // ── private helpers ──────────────────────────────────────────────────────
+
+    private AuthDTO.AuthResponse buildAuthResponse(User user) {
+        String accessToken  = jwtService.generateAccessToken(user, user.getId());
+        String refreshToken = jwtService.generateRefreshToken(user);
+
+        AuthDTO.UserInfo userInfo = new AuthDTO.UserInfo(
+                user.getId(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getEmail(),
+                user.getRole().name()
+        );
+
+        return AuthDTO.AuthResponse.of(accessToken, refreshToken, jwtService.getExpiration(), userInfo);
     }
 }

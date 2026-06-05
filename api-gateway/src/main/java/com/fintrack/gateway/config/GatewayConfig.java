@@ -1,4 +1,4 @@
-package com.fintrack.gateway.config;
+package com.fintrack.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

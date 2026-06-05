@@ -15,13 +15,46 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    public record ErrorResponse(int status, String error, String message, LocalDateTime timestamp) {}
-    public record ValidationErrorResponse(int status, String error, Map<String, String> fieldErrors, LocalDateTime timestamp) {}
+    public record ErrorResponse(
+            int status,
+            String error,
+            String message,
+            LocalDateTime timestamp
+    ) {}
 
-    @ExceptionHandler(AuthException.class)
-    public ResponseEntity<ErrorResponse> handleAuthException(AuthException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse(400, "Bad Request", ex.getMessage(), LocalDateTime.now()));
+    public record ValidationErrorResponse(
+            int status,
+            String error,
+            Map<String, String> fieldErrors,
+            LocalDateTime timestamp
+    ) {}
+
+    @ExceptionHandler(AuthException.EmailAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleEmailExists(
+            AuthException.EmailAlreadyExistsException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse(409, "Conflict", ex.getMessage(), LocalDateTime.now()));
+    }
+
+    @ExceptionHandler(AuthException.InvalidCredentialsException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidCredentials(
+            AuthException.InvalidCredentialsException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ErrorResponse(401, "Unauthorized", ex.getMessage(), LocalDateTime.now()));
+    }
+
+    @ExceptionHandler(AuthException.InvalidTokenException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidToken(
+            AuthException.InvalidTokenException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ErrorResponse(401, "Unauthorized", ex.getMessage(), LocalDateTime.now()));
+    }
+
+    @ExceptionHandler(AuthException.UserNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleUserNotFound(
+            AuthException.UserNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(404, "Not Found", ex.getMessage(), LocalDateTime.now()));
     }
 
     @ExceptionHandler(BadCredentialsException.class)
@@ -31,7 +64,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ValidationErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ValidationErrorResponse> handleValidation(
+            MethodArgumentNotValidException ex) {
         Map<String, String> fieldErrors = new HashMap<>();
         ex.getBindingResult().getAllErrors().forEach(error -> {
             String field = ((FieldError) error).getField();
@@ -44,6 +78,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneric(Exception ex) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ErrorResponse(500, "Internal Server Error", "An unexpected error occurred", LocalDateTime.now()));
+                .body(new ErrorResponse(500, "Internal Server Error",
+                        "An unexpected error occurred", LocalDateTime.now()));
     }
 }
