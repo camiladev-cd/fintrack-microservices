@@ -1,4 +1,4 @@
-dockerfileFROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 RUN addgroup -S fintrack && adduser -S fintrack -G fintrack
 COPY api-gateway/target/*.jar app.jar
