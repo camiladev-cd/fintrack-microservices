@@ -59,15 +59,21 @@ app:
   jwt:
     secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
 
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+
 management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics,prometheus
   endpoint:
     health:
-      show-details: never
-
-logging:
-  level:
-    org.springframework.cloud.gateway: DEBUG
+      show-details: always
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true

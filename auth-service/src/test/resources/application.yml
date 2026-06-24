@@ -1,29 +1,15 @@
-server:
-  port: 8081
-
 spring:
-  application:
-    name: auth-service
-
   datasource:
-    url: jdbc:postgresql://localhost:5432/fintrack_auth
-    username: fintrack_user
-    password: fintrack_pass
-    driver-class-name: org.postgresql.Driver
-
+    url: jdbc:tc:postgresql:15:///auth_test_db
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create-drop
     show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-
   data:
     redis:
       host: localhost
       port: 6379
-      timeout: 2000ms
 
 application:
   security:
@@ -32,20 +18,16 @@ application:
       access-token-expiration: 900000
       refresh-token-expiration: 604800000
 
-springdoc:
-  api-docs:
-    path: /api-docs
-  swagger-ui:
-    path: /swagger-ui.html
-
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus
   endpoint:
     health:
       show-details: always
+    prometheus:
+      enabled: true
   metrics:
     export:
       prometheus:
