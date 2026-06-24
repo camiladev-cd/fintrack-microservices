@@ -3,13 +3,13 @@ WORKDIR /app
 COPY .mvn/ .mvn/
 COPY mvnw pom.xml ./
 COPY user-service/pom.xml user-service/
-RUN ./mvnw dependency:go-offline -pl user-service -am -q
+RUN chmod +x mvnw && ./mvnw dependency:go-offline -pl api-gateway -am -q
 COPY user-service/src user-service/src
 RUN ./mvnw package -pl user-service -am -DskipTests -q
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
-RUN addgroup -S fintrack && adduser -S fintrack -G fintrack
+RUN chmod +x mvnw && ./mvnw package -pl api-gateway -am -DskipTests -q
 COPY --from=builder /app/user-service/target/*.jar app.jar
 RUN chown fintrack:fintrack app.jar
 USER fintrack
