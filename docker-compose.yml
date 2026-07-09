@@ -126,6 +126,30 @@ services:
     depends_on:
       - prometheus
 
+
+  payment-service:
+    build:
+      context: ./payment-service
+      dockerfile: Dockerfile
+    container_name: fintrack_payment_service
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/fintrack_payments
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-fintrack_user}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-fintrack_pass}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+    networks:
+      - fintrack_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
 volumes:
   postgres_data:
   redis_data:
